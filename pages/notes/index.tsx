@@ -1,8 +1,10 @@
 import Head from "next/head";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Loading from "../../components/loading";
+import Error from "../../components/error";
 import Layout from "../../layouts/default";
 import axios from "axios";
+import useSWR from "swr";
 import {
   Box,
   Button,
@@ -17,21 +19,14 @@ import {
 export default function NoteIndex() {
   const [isLoading, setIsLoading] = useState(true);
   const [notes, setNotes] = useState([]);
-  // form
   const [formTitle, setFormTitle] = useState("");
   const [formBody, setFormBody] = useState("");
+  const ref = useRef(null);
 
-  function getPost() {
-    axios
-      .get("/api/get")
-      .then((res) => {
-        setNotes(res.data);
-        setIsLoading(false);
-      })
-      .catch((res) => {
-        console.error(res);
-      });
-  }
+  const fetcher = (url: string) => axios.get(url).then((res) => res.data);
+  const { data, error } = useSWR("/api/get", fetcher, {
+    refreshInterval: 1000,
+  });
 
   function createPost() {
     axios
@@ -42,7 +37,7 @@ export default function NoteIndex() {
       .then((res) => {
         setFormTitle("");
         setFormBody("");
-        getPost();
+        ref.current.focus();
       })
       .catch((res) => {
         console.error(res);
@@ -50,14 +45,8 @@ export default function NoteIndex() {
   }
 
   function hotKeyDown(e: any) {
-    if (e.ctrlKey || e.metaKey) {
-      if (e.key === "Enter") createPost();
-    }
+    if (e.ctrlKey || e.metaKey) if (e.key === "Enter") createPost();
   }
-
-  useEffect(() => {
-    getPost();
-  }, []);
 
   return (
     <>
@@ -82,6 +71,7 @@ export default function NoteIndex() {
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               onKeyDown={(e) => hotKeyDown(e)}
+              ref={ref}
             />
             <Textarea
               placeholder="Body"
@@ -102,12 +92,14 @@ export default function NoteIndex() {
           </Stack>
         </Box>
         <Box>
-          {isLoading ? (
+          {error ? (
+            <Error />
+          ) : !data ? (
             <Loading />
           ) : (
             <>
               <Stack spacing={2}>
-                {notes.map((d, i) => (
+                {data.map((d, i) => (
                   <React.Fragment key={i}>
                     <Box
                       background={"white"}

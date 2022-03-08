@@ -11,7 +11,7 @@ export default function Layout({ children }) {
           }
         `}
       />
-      <Container maxW="container.xl" my={5}>
+      <Container maxW="container.lg" my={5}>
         {children}
       </Container>
     </>
